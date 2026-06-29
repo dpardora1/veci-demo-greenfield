@@ -42,8 +42,8 @@ API + SPA para el flujo de **checkout de excursiones opcionales** en touroperaci
 
 ### 3.4 Convenciones
 - Commits: Conventional Commits.
-- PRs: título `SPEC-XXXX / AZDO-YYYYY - <descripción>`.
-- Branches: `feature/SPEC-XXXX-<slug>`, `fix/AZDO-YYYYY-<slug>`.
+- PRs: título `SPEC-XXXX / #N - <descripción>` (donde `#N` es el número de Issue de este repo).
+- Branches: `feature/SPEC-XXXX-<slug>`, `fix/issue-N-<slug>`.
 - Tests verdes obligatorios para mergear a `main`.
 - No introducir dependencias nuevas sin ADR en `docs/adr/`.
 
@@ -73,8 +73,8 @@ API + SPA para el flujo de **checkout de excursiones opcionales** en touroperaci
 
 | Capacidad | MCP | Permisos |
 |---|---|---|
-| Azure DevOps work items | mcp-azure-devops | read + comment + transition |
-| Repo + Git | nativo IDE | read + write rama feature |
+| GitHub Issues + PRs | mcp-github (o `gh` CLI por scripts) | read + comment + transition; no force-push, no delete |
+| Repo + Git | nativo IDE | read + write rama feature; protección en `main` |
 | Tests/build local | mcp-runner-local | execute |
 
 > Cualquier MCP no listado: prohibido sin ADR.
