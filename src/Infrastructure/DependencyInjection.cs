@@ -1,7 +1,9 @@
 ﻿using greenfield_checkout.Application.Common.Interfaces;
+using greenfield_checkout.Application.Promotions.Common;
 using greenfield_checkout.Infrastructure.Data;
 using greenfield_checkout.Infrastructure.Data.Interceptors;
 using greenfield_checkout.Infrastructure.Identity;
+using greenfield_checkout.Infrastructure.Promotions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -50,6 +52,9 @@ public static class DependencyInjection
             .AddDefaultTokenProviders()
             .AddApiEndpoints();
 
+
+        // SPEC-2026-0043 slice 1: in-memory promotion catalog (replaced by EF Core in slice 2+).
+        builder.Services.AddSingleton<IPromoCodeRepository, InMemoryPromoCodeRepository>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
     }
