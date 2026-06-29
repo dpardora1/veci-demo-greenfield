@@ -1,0 +1,27 @@
+name: spec-lint
+
+on:
+  pull_request:
+    paths:
+      - 'docs/specs/**'
+      - 'tools/lint-spec.ps1'
+      - '.github/workflows/spec-lint.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/specs/**'
+      - 'tools/lint-spec.ps1'
+      - '.github/workflows/spec-lint.yml'
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint specs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run spec linter
+        shell: pwsh
+        run: pwsh -NoProfile -File tools/lint-spec.ps1

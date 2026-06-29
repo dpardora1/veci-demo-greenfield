@@ -490,3 +490,7 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+
+# VECI playbook tooling (kept in repo, not .NET build output)
+!tools/
+!tools/**
