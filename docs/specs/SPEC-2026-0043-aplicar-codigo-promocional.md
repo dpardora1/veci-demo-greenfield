@@ -10,7 +10,7 @@ owner_funcional: ana.perez@veci.example
 owner_tecnico: carlos.lopez@nttdata.example
 
 # Trazabilidad
-work_item: AZDO-12346
+work_item: dpardora1/veci-demo-greenfield#1
 related_specs: [SPEC-2026-0042]
 related_adrs: []
 superseded_by: null
@@ -281,7 +281,7 @@ promo_redemption(
 
 | Elemento | Referencia |
 |---|---|
-| Work item | `AZDO-12346` ([docs/work-items/AZDO-12346.md](../work-items/AZDO-12346.md)) |
+| Work item | [dpardora1/veci-demo-greenfield#1](https://github.com/dpardora1/veci-demo-greenfield/issues/1) |
 | Spec relacionada | `SPEC-2026-0042` — Reserva de excursión opcional en checkout |
 | ADRs pendientes | retención PII en redenciones, control de concurrencia atómica en canjeos |
 | Tests | `tests/Application.FunctionalTests/PromoCodes/*` (a crear), `tests/Domain.UnitTests/Promotions/*` (a crear) |
@@ -291,5 +291,6 @@ promo_redemption(
 
 | Fecha | Autor | Cambio |
 |---|---|---|
-| 2026-06-29 | claude-opus-4.7 (AI) + dpardora (humano) | Versión inicial `draft` generada desde `AZDO-12346` en ejecución del caso C1 del playbook. |
+| 2026-06-29 | claude-opus-4.7 (AI) + dpardora (humano) | Versión inicial `draft` generada desde Issue #1 en ejecución del caso C1 del playbook. |
 | 2026-06-29 | ana.perez + carlos.lopez | Cambios derivados de revisión (RN7 propinas, idempotencia PUT). Status `draft` → `review` → `approved`. Ver `reviews/SPEC-2026-0043-review.md`. |
+| 2026-06-29 | dpardora | Migrado work item simulado `AZDO-12346` a Issue real `#1` en GitHub. Refs actualizadas. |
