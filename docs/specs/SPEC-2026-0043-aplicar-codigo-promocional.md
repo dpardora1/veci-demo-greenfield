@@ -3,7 +3,7 @@
 id: SPEC-2026-0043
 title: Aplicar código promocional al checkout de excursiones
 slug: aplicar-codigo-promocional
-status: draft
+status: approved
 
 # Ownership
 owner_funcional: ana.perez@veci.example
@@ -72,7 +72,7 @@ Se requiere automatizar la **validación y aplicación** del código durante el 
 | RN4 | Un código puede restringir **destinos** y/o **tipos de excursión**. Si la reserva no encaja, no aplica. |
 | RN5 | El descuento puede ser **porcentual** (`percentage`) o **importe fijo** (`fixed_amount`), nunca ambos. |
 | RN6 | Si es porcentual, puede tener **tope absoluto** (`max_discount_amount`). |
-| RN7 | El descuento se aplica sobre el **subtotal de excursiones**, nunca sobre tasas o seguros obligatorios. |
+| RN7 | El descuento se aplica sobre el **subtotal de excursiones** (incluidas propinas opcionales del guía), nunca sobre tasas ni seguros obligatorios. Si el código declara `exclude_optional_tips`, se excluyen las propinas del cálculo. |
 | RN8 | Códigos del mismo tipo no se apilan; políticas de mezcla entre tipos definidas en `stacking_policy` (`exclusive` por defecto). |
 | RN9 | Un código consumido en una pre-reserva **bloquea** uno de los slots por 15 min (alineado con `SPEC-2026-0042` RN3). Si la pre-reserva expira, se libera. |
 | RN10 | Toda redención (incluso fallida) deja **traza inmutable** con `user_id`, `code`, `result`, `timestamp`, `reservation_id?`. |
@@ -170,6 +170,9 @@ paths:
     put:
       operationId: applyPromoCode
       summary: Aplica un código promocional a una reserva en pre-reserva.
+      description: |
+        Idempotente por (reservationId, code) dentro de la ventana de pre-reserva (15 min).
+        Un reintento con el mismo cuerpo no genera un nuevo PromoCodeRedeemed ni incrementa total_redemptions más de una vez.
       parameters:
         - name: reservationId
           in: path
@@ -289,3 +292,4 @@ promo_redemption(
 | Fecha | Autor | Cambio |
 |---|---|---|
 | 2026-06-29 | claude-opus-4.7 (AI) + dpardora (humano) | Versión inicial `draft` generada desde `AZDO-12346` en ejecución del caso C1 del playbook. |
+| 2026-06-29 | ana.perez + carlos.lopez | Cambios derivados de revisión (RN7 propinas, idempotencia PUT). Status `draft` → `review` → `approved`. Ver `reviews/SPEC-2026-0043-review.md`. |
