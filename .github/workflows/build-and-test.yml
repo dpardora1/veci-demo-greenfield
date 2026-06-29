@@ -1,0 +1,55 @@
+name: Build and test
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '**/*.csproj'
+      - '**/*.slnx'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/build-and-test.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - '**/*.csproj'
+      - '**/*.slnx'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/build-and-test.yml'
+
+jobs:
+  build-and-test:
+    name: Build and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore greenfield-checkout.slnx
+
+      - name: Build
+        run: dotnet build greenfield-checkout.slnx --no-restore --configuration Release
+
+      - name: Test (Domain)
+        run: dotnet test tests/Domain.UnitTests/Domain.UnitTests.csproj --no-build --configuration Release --logger "trx;LogFileName=Domain.trx" --results-directory TestResults
+
+      - name: Test (Application)
+        run: dotnet test tests/Application.UnitTests/Application.UnitTests.csproj --no-build --configuration Release --logger "trx;LogFileName=Application.trx" --results-directory TestResults
+
+      - name: Publish test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults/*.trx

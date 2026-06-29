@@ -2,16 +2,9 @@ name: spec-lint
 
 on:
   pull_request:
-    paths:
-      - 'docs/specs/**'
-      - 'tools/lint-spec.ps1'
-      - '.github/workflows/spec-lint.yml'
+    branches: [main]
   push:
     branches: [main]
-    paths:
-      - 'docs/specs/**'
-      - 'tools/lint-spec.ps1'
-      - '.github/workflows/spec-lint.yml'
   workflow_dispatch:
 
 jobs:
