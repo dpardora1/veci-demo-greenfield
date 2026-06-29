@@ -1,0 +1,74 @@
+# Dependabot configuration for veci-demo-greenfield
+#
+# Closes GAP-2026-0009 (remaining piece) from the VECI playbook:
+# the demo extended `WarningsNotAsErrors` with NU1902;NU1903 to unblock builds
+# while audit findings on transitive packages get resolved. Dependabot keeps
+# those transitive bumps flowing automatically so the suppression stays narrow
+# and time-bound rather than permanent.
+#
+# Refs: https://github.com/pluaalentt/VECI_Methodology/blob/main/playbook/08-validacion-en-demo.md
+
+version: 2
+updates:
+  # .NET dependencies (centralized in Directory.Packages.props)
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - dotnet
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+    groups:
+      # Group transitive audit-driven bumps so PRs stay reviewable
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      testing:
+        patterns:
+          - "NUnit*"
+          - "Shouldly"
+          - "Moq"
+          - "Respawn"
+          - "Microsoft.NET.Test.Sdk"
+
+  # GitHub Actions used in CI
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: "chore(ci)"
+      include: scope
+
+  # Frontend npm dependencies (template ships a React 19 + Vite app under src/Web/ClientApp)
+  - package-ecosystem: npm
+    directory: "/src/Web/ClientApp"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "07:00"
+      timezone: Europe/Madrid
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope

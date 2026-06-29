@@ -1,26 +1,15 @@
 name: Build and test
 
+# Runs on every PR and every push to main, regardless of which paths changed.
+# Rationale: this check is REQUIRED by branch protection. Using path filters
+# leaves docs-only PRs with mergeStateStatus=BLOCKED because the check never
+# fires (cierra GAP-2026-0012). The build is cheap enough to run on docs PRs;
+# this also guarantees that any drift between docs and code is caught early.
 on:
   pull_request:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - '**/*.csproj'
-      - '**/*.slnx'
-      - 'Directory.Build.props'
-      - 'Directory.Packages.props'
-      - '.github/workflows/build-and-test.yml'
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'tests/**'
-      - '**/*.csproj'
-      - '**/*.slnx'
-      - 'Directory.Build.props'
-      - 'Directory.Packages.props'
-      - '.github/workflows/build-and-test.yml'
 
 jobs:
   build-and-test:
