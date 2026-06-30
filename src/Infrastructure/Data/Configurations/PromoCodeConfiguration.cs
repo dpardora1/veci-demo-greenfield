@@ -33,5 +33,6 @@ public class PromoCodeConfiguration : IEntityTypeConfiguration<PromoCode>
         builder.Property(p => p.ValidTo).IsRequired();
         builder.Property(p => p.MaxTotalRedemptions).IsRequired();
         builder.Property(p => p.TotalRedemptions).IsRequired();
+        builder.Property(p => p.MaxPerUser).IsRequired();
     }
 }

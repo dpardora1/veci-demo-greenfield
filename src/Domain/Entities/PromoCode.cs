@@ -17,6 +17,7 @@ public class PromoCode
     public DateTimeOffset ValidTo { get; private set; }
     public int MaxTotalRedemptions { get; private set; }
     public int TotalRedemptions { get; private set; }
+    public int MaxPerUser { get; private set; }
 
     private PromoCode() { }
 
@@ -27,7 +28,8 @@ public class PromoCode
         DateTimeOffset validFrom,
         DateTimeOffset validTo,
         int maxTotalRedemptions,
-        decimal? maxDiscount = null)
+        decimal? maxDiscount = null,
+        int maxPerUser = 1)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty.", nameof(code));
@@ -42,6 +44,8 @@ public class PromoCode
         // RN5 invariant: type-and-value pair is exclusive by construction (single Type, single Value).
         if (maxDiscount is < 0)
             throw new ArgumentOutOfRangeException(nameof(maxDiscount));
+        if (maxPerUser <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxPerUser), "MaxPerUser must be positive.");
 
         Code = code;
         Type = type;
@@ -50,6 +54,7 @@ public class PromoCode
         ValidTo = validTo;
         MaxTotalRedemptions = maxTotalRedemptions;
         MaxDiscount = maxDiscount;
+        MaxPerUser = maxPerUser;
         TotalRedemptions = 0;
     }
 

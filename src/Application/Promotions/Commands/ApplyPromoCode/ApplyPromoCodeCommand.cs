@@ -14,7 +14,9 @@ namespace greenfield_checkout.Application.Promotions.Commands.ApplyPromoCode;
 /// Slice 2B: idempotent by (reservationId, code, userId) within the pre-reservation
 /// window (SPEC §7.1 PUT note), and publishes PromoCodeRedeemedEvent on every outcome
 /// (RN10 full: applied and rejected redemptions both notify downstream consumers).
-/// Slice 2+ pending: RN3 max_per_user, RN4 destinations, RN7 tips, RN8 stacking, RN9 slot, rate limit.
+/// Slice 2C: RN3 max_per_user (PROMO_ALREADY_USED) and §8 brute-force protection
+/// (10 attempts / 5 min per (user, reservation) → PROMO_RATE_LIMITED).
+/// Slice 2+ pending: RN4 destinations, RN7 tips, RN8 stacking, RN9 slot, timeout.
 /// </summary>
 public sealed record ApplyPromoCodeCommand : IRequest<ApplyPromoCodeResult>
 {
@@ -25,6 +27,10 @@ public sealed record ApplyPromoCodeCommand : IRequest<ApplyPromoCodeResult>
 
 public sealed class ApplyPromoCodeCommandHandler : IRequestHandler<ApplyPromoCodeCommand, ApplyPromoCodeResult>
 {
+    // SPEC-2026-0043 §8 — anti-bruteforce: 10 attempts per (user, reservation) per 5 min.
+    public const int RateLimitMaxAttempts = 10;
+    public static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(5);
+
     private readonly IPromoCodeRepository _repository;
     private readonly IUser _currentUser;
     private readonly TimeProvider _timeProvider;
@@ -44,6 +50,17 @@ public sealed class ApplyPromoCodeCommandHandler : IRequestHandler<ApplyPromoCod
         var userId = _currentUser.Id ?? "anonymous";
         var now = _timeProvider.GetUtcNow();
 
+        // Slice 2C — §8 anti-bruteforce. Counted BEFORE idempotency so a flood of retries
+        // on the same (reservation, code) cannot be used to mask abuse on neighbouring codes.
+        var attempts = await _repository.CountAttemptsInWindowAsync(
+            request.ReservationId, userId, now - RateLimitWindow, cancellationToken);
+        if (attempts >= RateLimitMaxAttempts)
+        {
+            await PersistRejectionAsync(
+                request.Code, userId, request.ReservationId, PromoCodeRejectReason.RateLimited, now, cancellationToken);
+            return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.RateLimited));
+        }
+
         // Slice 2B — idempotency: a retry with the same (reservation, code, user) that
         // is still Applied returns the prior result without consuming a new slot or
         // emitting a duplicate trace.
@@ -60,6 +77,16 @@ public sealed class ApplyPromoCodeCommandHandler : IRequestHandler<ApplyPromoCod
             await PersistRejectionAsync(
                 request.Code, userId, request.ReservationId, PromoCodeRejectReason.NotFound, now, cancellationToken);
             return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.NotFound));
+        }
+
+        // Slice 2C — RN3 max_per_user. Count active applied redemptions for this user/code
+        // (ignoring releases) and reject if the cap is reached.
+        var activeByUser = await _repository.CountActiveAppliedByUserAsync(promo.Code, userId, cancellationToken);
+        if (activeByUser >= promo.MaxPerUser)
+        {
+            await PersistRejectionAsync(
+                promo.Code, userId, request.ReservationId, PromoCodeRejectReason.AlreadyUsed, now, cancellationToken);
+            return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.AlreadyUsed));
         }
 
         var evaluation = promo.Evaluate(request.Subtotal, now);

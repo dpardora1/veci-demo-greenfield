@@ -40,6 +40,13 @@ public class ApplyPromoCodeCommandHandlerTests
         _repo.Setup(r => r.GetActiveAppliedRedemptionAsync(
                 It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
              .ReturnsAsync((PromoRedemption?)null);
+        // Slice 2C: per-user cap and rate-limit probes default to 0 unless overridden.
+        _repo.Setup(r => r.CountActiveAppliedByUserAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync(0);
+        _repo.Setup(r => r.CountAttemptsInWindowAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync(0);
 
         _user = new Mock<IUser>();
         _user.SetupGet(u => u.Id).Returns("user-001");
