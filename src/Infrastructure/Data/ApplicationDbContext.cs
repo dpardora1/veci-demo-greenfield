@@ -15,6 +15,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<TodoItem> TodoItems => Set<TodoItem>();
 
+    public DbSet<PromoCode> PromoCodes => Set<PromoCode>();
+
+    public DbSet<PromoRedemption> PromoRedemptions => Set<PromoRedemption>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);

@@ -8,5 +8,9 @@ public interface IApplicationDbContext
 
     DbSet<TodoItem> TodoItems { get; }
 
+    DbSet<PromoCode> PromoCodes { get; }
+
+    DbSet<PromoRedemption> PromoRedemptions { get; }
+
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
