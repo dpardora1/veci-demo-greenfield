@@ -53,8 +53,8 @@ public static class DependencyInjection
             .AddApiEndpoints();
 
 
-        // SPEC-2026-0043 slice 1: in-memory promotion catalog (replaced by EF Core in slice 2+).
-        builder.Services.AddSingleton<IPromoCodeRepository, InMemoryPromoCodeRepository>();
+        // SPEC-2026-0043 slice 2A: EF Core + PostgreSQL persistence.
+        builder.Services.AddScoped<IPromoCodeRepository, EfPromoCodeRepository>();
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
     }
