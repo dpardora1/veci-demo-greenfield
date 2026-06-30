@@ -3,14 +3,14 @@
 id: SPEC-2026-0045
 title: Plataforma IA mínima del cliente (cliente-ia-platform)
 slug: platform-ia-minima
-status: draft
+status: approved
 
 # Ownership
 owner_funcional: dpardora@nttdata.example
 owner_tecnico: dpardora@nttdata.example
 
 # Trazabilidad
-work_item: null
+work_item: dpardora1/veci-demo-greenfield#30
 related_specs: [SPEC-2026-0042, SPEC-2026-0043]
 related_adrs: []
 superseded_by: null
@@ -192,4 +192,5 @@ No aplica API HTTP — el catálogo es un repo git plano. Contratos relevantes:
 |---|---|---|---|
 | 0.1.0 | 2026-06-30 | dpardora | Versión inicial. Status `draft`. |
 | 0.2.0 | 2026-06-30 | dpardora | Decidido repo hermano (no subcarpeta). RN1, escenarios y plan de slicing 3A actualizados. ADR-002 cambia de "dónde" a "cómo se referencia desde el demo". |
+| 0.3.0 | 2026-06-30 | dpardora | Status `approved`. Aprobada en modo unipersonal (review_count=0) según opción 2 documentada en sesión 2026-06-30. Habilita apertura de slice 3A. |
 
