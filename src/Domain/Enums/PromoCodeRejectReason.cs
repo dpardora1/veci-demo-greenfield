@@ -7,5 +7,6 @@ public enum PromoCodeRejectReason
     Exhausted = 3,
     NotApplicable = 4,
     AlreadyUsed = 5,
-    ValidationTimeout = 6
+    ValidationTimeout = 6,
+    RateLimited = 7
 }
