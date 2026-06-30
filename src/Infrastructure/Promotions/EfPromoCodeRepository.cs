@@ -75,4 +75,26 @@ public sealed class EfPromoCodeRepository : IPromoCodeRepository
 
         return last is { Result: RedemptionResult.Applied } ? last : null;
     }
+
+    public async Task<int> CountActiveAppliedByUserAsync(string code, string userId, CancellationToken cancellationToken = default)
+    {
+        var applied = _context.PromoRedemptions
+            .Where(r => r.Code == code && r.UserId == userId && r.Result == RedemptionResult.Applied)
+            .Select(r => r.ReservationId);
+
+        var released = _context.PromoRedemptions
+            .Where(r => r.Code == code && r.UserId == userId && r.Result == RedemptionResult.Released)
+            .Select(r => r.ReservationId);
+
+        return await applied.Except(released).CountAsync(cancellationToken);
+    }
+
+    public Task<int> CountAttemptsInWindowAsync(string reservationId, string userId, DateTimeOffset since, CancellationToken cancellationToken = default)
+    {
+        return _context.PromoRedemptions
+            .Where(r => r.ReservationId == reservationId
+                     && r.UserId == userId
+                     && r.Created >= since)
+            .CountAsync(cancellationToken);
+    }
 }

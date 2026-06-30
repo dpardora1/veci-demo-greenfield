@@ -122,7 +122,9 @@ public class ApplicationDbContextInitialiser
                 new PromoCode("PRIMAVERA", PromoCodeType.Percentage, 10m,
                     new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero),
                     new DateTimeOffset(2026, 5, 31, 23, 59, 59, TimeSpan.Zero),
-                    1_000));
+                    1_000),
+                // SPEC-2026-0043 slice 2C — RN3 max_per_user: BIENVENIDA is restricted to 1 use per customer.
+                new PromoCode("BIENVENIDA", PromoCodeType.Percentage, 15m, startOfYear, endOfYear, 10_000, maxPerUser: 1));
 
             var agotado = new PromoCode("AGOTADO", PromoCodeType.Percentage, 10m, startOfYear, endOfYear, 1);
             agotado.Consume();
