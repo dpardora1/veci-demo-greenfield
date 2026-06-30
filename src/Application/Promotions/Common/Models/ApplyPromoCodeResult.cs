@@ -27,6 +27,7 @@ public sealed record ApplyPromoCodeResult(
         PromoCodeRejectReason.NotApplicable     => "PROMO_NOT_APPLICABLE",
         PromoCodeRejectReason.AlreadyUsed       => "PROMO_ALREADY_USED",
         PromoCodeRejectReason.ValidationTimeout => "PROMO_VALIDATION_TIMEOUT",
+        PromoCodeRejectReason.RateLimited       => "PROMO_RATE_LIMITED",
         _ => "PROMO_UNKNOWN"
     };
 }
