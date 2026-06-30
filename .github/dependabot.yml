@@ -35,6 +35,9 @@ updates:
           - "Microsoft.AspNetCore.*"
           - "Microsoft.EntityFrameworkCore*"
           - "Microsoft.Extensions.*"
+      aspire:
+        patterns:
+          - "Aspire.*"
       opentelemetry:
         patterns:
           - "OpenTelemetry*"
@@ -61,6 +64,12 @@ updates:
     commit-message:
       prefix: "chore(ci)"
       include: scope
+    groups:
+      # All GitHub Actions travel together. Majors stay in the same PR so the
+      # reviewer sees the full diff once instead of dripping bumps over weeks.
+      actions:
+        patterns:
+          - "*"
 
   # Frontend npm dependencies (template ships a React 19 + Vite app under src/Web/ClientApp)
   - package-ecosystem: npm
@@ -77,3 +86,24 @@ updates:
     commit-message:
       prefix: "chore(deps)"
       include: scope
+    groups:
+      # React core + router travel together to avoid version skew.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router"
+          - "react-router-dom"
+          - "@types/react*"
+      eslint:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+          - "@typescript-eslint/*"
+      build-tools:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+          - "vitest"
+          - "typescript"
