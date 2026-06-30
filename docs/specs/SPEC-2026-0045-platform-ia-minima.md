@@ -43,7 +43,7 @@ Esta spec materializa una **versión mínima viable** del catálogo y la integra
 
 ### Objetivo
 
-- Crear `cliente-ia-platform/` como artefacto vivo del demo (subcarpeta `platform/` o repo hermano — decisión en ADR).
+- Crear `cliente-ia-platform/` como **repo git independiente, hermano de `greenfield-checkout/`**, replicando la topología esperada en cliente real (un repo de plataforma compartido por N squads). Decisión firmada en sesión 2026-06-30, formalizada en ADR-002.
 - Materializar **2-3 skills mínimas reales** (no plantillas vacías) extraídas del trabajo que el operador ya viene haciendo a mano en slices 1-2C.
 - Integrar el catálogo con el `AGENTS.md` del demo de forma que los slices 3+ consuman skills **desde el catálogo**, no improvisadas.
 - Documentar el formato de skill en un ADR para que la promoción de skills locales → catálogo sea reproducible.
@@ -72,7 +72,7 @@ Esta spec materializa una **versión mínima viable** del catálogo y la integra
 
 | ID | Regla |
 |---|---|
-| RN1 | El catálogo vive como **repo git** (hermano o subcarpeta — decisión vía ADR-002). Tiene su propio `README.md` con propósito, governance y cómo contribuir. |
+| RN1 | El catálogo vive como **repo git independiente** (hermano de `greenfield-checkout/` en la misma organización GitHub). Tiene su propio `README.md` con propósito, governance y cómo contribuir. La decisión hermano vs subcarpeta queda firmada en ADR-002. |
 | RN2 | Toda skill del catálogo es un fichero `.prompt.md` o `.instructions.md` con frontmatter YAML obligatorio (`id`, `title`, `version`, `owner`, `last_validated`, `applies_to`). |
 | RN3 | Una skill solo entra al catálogo si está **ejecutada con éxito en al menos 2 contextos reales distintos** del demo (no se promueven skills hipotéticas). |
 | RN4 | El `AGENTS.md` del demo referencia las skills del catálogo por **path relativo + versión**, no copia su contenido. |
@@ -91,15 +91,15 @@ Feature: Plataforma IA mínima del cliente
   Y para que los slices 3+ consuman skills del catálogo, no improvisadas
 
   Scenario: El catálogo existe y es navegable
-    Dado que el operador clona el demo
-    Cuando lista la estructura del workspace
-    Entonces existe un directorio "cliente-ia-platform/" o "platform/" según ADR-002
-    Y contiene un README.md con secciones "Propósito", "Cómo contribuir", "Governance"
+    Dado que el operador clona la organización del demo
+    Cuando lista los repos
+    Entonces existe un repo "cliente-ia-platform" hermano de "greenfield-checkout"
+    Y al clonarlo, contiene un README.md con secciones "Propósito", "Cómo contribuir", "Governance"
     Y contiene un subdirectorio "skills/" con al menos 2 skills versionadas
     Y contiene un subdirectorio "adr/" con ADR-001 (formato de skill) y ADR-002 (ubicación)
 
   Scenario: Una skill mínima cumple el formato (RN2)
-    Dado el fichero "platform/skills/slicing-assist.prompt.md"
+    Dado el fichero "skills/slicing-assist.prompt.md" en el repo cliente-ia-platform
     Cuando se valida su frontmatter
     Entonces tiene id que coincide con "SKILL-YYYY-NNNN"
     Y tiene version semver
@@ -126,7 +126,7 @@ Feature: Plataforma IA mínima del cliente
     Y al mergearse, queda en "skills/" con frontmatter completo
 
   Scenario: ADR-001 fija el formato de skill (RN7)
-    Dado el fichero "platform/adr/ADR-001-formato-skill.md"
+    Dado el fichero "adr/ADR-001-formato-skill.md" en el repo cliente-ia-platform
     Cuando se lee
     Entonces declara el frontmatter YAML obligatorio (RN2)
     Y declara el esqueleto del cuerpo (Inputs, Salida, Ejemplo)
@@ -146,7 +146,7 @@ No aplica API HTTP — el catálogo es un repo git plano. Contratos relevantes:
 
 - **Formato de skill** (fijado en ADR-001 del propio catálogo): frontmatter YAML obligatorio con `id`, `title`, `version` (semver), `owner`, `applies_to` (lista), `last_validated` (ISO-8601), `deprecated` (bool, default false), `deprecated_reason` (opcional).
 - **Cuerpo de skill**: secciones obligatorias `Inputs esperados`, `Salida esperada`, `Ejemplo`.
-- **Referencia desde AGENTS.md**: `platform/skills/<slug>.prompt.md@<version>` (path relativo + versión semver).
+- **Referencia desde AGENTS.md**: `cliente-ia-platform/skills/<slug>.prompt.md@<version>` por URL raíz del repo hermano (ej. `https://github.com/<org>/cliente-ia-platform/blob/v0.1.0/skills/slicing-assist.prompt.md`) o por submodule/git subtree si se decide en ADR-002.
 - **Issues de slice** (Modelo B): título `Slice 3X — <descripción>`, body con campos `spec_origen: SPEC-2026-0045`, `reglas_cubiertas: [...]`, `escenarios_cubiertos: [...]`, `deferred: [...]`.
 
 ## 8. Consideraciones de seguridad, privacidad y cumplimiento
@@ -181,14 +181,15 @@ No aplica API HTTP — el catálogo es un repo git plano. Contratos relevantes:
 
 - **Cierra parcialmente** [GAP-2026-0018](../../../../VECI_Methodology/playbook/08-validacion-en-demo.md#gap-2026-0018): fases 1 y 2 del plan. La fase 3 (Caso D — agente autónomo) queda fuera de scope de esta spec.
 - **Aplica** Modelo B de issues por slice [GAP-2026-0016](../../../../VECI_Methodology/playbook/08-validacion-en-demo.md#gap-2026-0016).
-- **Requiere** gate de revisión humana ≥1 [GAP-2026-0015](../../../../VECI_Methodology/playbook/08-validacion-en-demo.md#gap-2026-0015) — buena oportunidad para subir `required_approving_review_count` a `1`.
+- **Requiere** gate de revisión humana ≥1 [GAP-2026-0015](../../../../VECI_Methodology/playbook/08-validacion-en-demo.md#gap-2026-0015) — confirmado en sesión 2026-06-30 que la demo sigue operando con `required_approving_review_count = 0` mientras sea unipersonal. Se subirá a `1` cuando entre el segundo perfil.
 - **Referencia** playbook cap. 05 §3 (Catálogo común del cliente), cap. 05 §5 (Champions IA), anexo C (plantilla AGENTS.md).
 - **Specs relacionadas**: SPEC-2026-0042, SPEC-2026-0043 (consumirán skills del catálogo desde slice 4 en adelante).
-- **ADRs derivados**: ADR-002 (ubicación del catálogo, hermano vs subcarpeta) se redacta en slice 3A.
+- **ADRs derivados**: ADR-002 (mecanismo de referencia entre el demo y el repo hermano `cliente-ia-platform`: URL absoluta vs submodule vs subtree) se redacta en slice 3A.
 
 ## 12. Historial de cambios
 
 | Versión | Fecha | Autor | Cambio |
 |---|---|---|---|
-| 0.1.0 | 2026-06-30 | dpardora | Versión inicial. Status `draft` pendiente de aprobación antes de abrir slice 3A. |
+| 0.1.0 | 2026-06-30 | dpardora | Versión inicial. Status `draft`. |
+| 0.2.0 | 2026-06-30 | dpardora | Decidido repo hermano (no subcarpeta). RN1, escenarios y plan de slicing 3A actualizados. ADR-002 cambia de "dónde" a "cómo se referencia desde el demo". |
 
