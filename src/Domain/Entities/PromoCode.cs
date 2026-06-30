@@ -96,6 +96,18 @@ public class PromoCode
             throw new InvalidOperationException($"PromoCode '{Code}' is exhausted.");
         TotalRedemptions++;
     }
+
+    /// <summary>
+    /// Returns a previously consumed slot to the global pool (SPEC-2026-0043 slice 2B,
+    /// supports the customer-triggered DELETE flow). Idempotent on Code-Reservation pairs:
+    /// the caller is responsible for ensuring there is an Applied redemption to release.
+    /// </summary>
+    public void Release()
+    {
+        if (TotalRedemptions <= 0)
+            throw new InvalidOperationException($"PromoCode '{Code}' has no redemptions to release.");
+        TotalRedemptions--;
+    }
 }
 
 public readonly record struct PromoCodeEvaluation(bool Success, decimal Discount, PromoCodeRejectReason? Reason)

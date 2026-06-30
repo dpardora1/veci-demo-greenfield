@@ -1,5 +1,6 @@
 using greenfield_checkout.Application.Promotions.Common;
 using greenfield_checkout.Domain.Entities;
+using greenfield_checkout.Domain.Enums;
 using greenfield_checkout.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -46,5 +47,32 @@ public sealed class EfPromoCodeRepository : IPromoCodeRepository
     {
         await _context.PromoRedemptions.AddAsync(redemption, cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<PromoRedemption?> GetActiveAppliedRedemptionAsync(string reservationId, string code, string userId, CancellationToken cancellationToken = default)
+    {
+        var last = await _context.PromoRedemptions
+            .Where(r => r.ReservationId == reservationId
+                     && r.Code == code
+                     && r.UserId == userId
+                     && (r.Result == RedemptionResult.Applied || r.Result == RedemptionResult.Released))
+            .OrderByDescending(r => r.Created)
+            .ThenByDescending(r => r.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return last is { Result: RedemptionResult.Applied } ? last : null;
+    }
+
+    public async Task<PromoRedemption?> GetActiveAppliedRedemptionAsync(string reservationId, string userId, CancellationToken cancellationToken = default)
+    {
+        var last = await _context.PromoRedemptions
+            .Where(r => r.ReservationId == reservationId
+                     && r.UserId == userId
+                     && (r.Result == RedemptionResult.Applied || r.Result == RedemptionResult.Released))
+            .OrderByDescending(r => r.Created)
+            .ThenByDescending(r => r.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return last is { Result: RedemptionResult.Applied } ? last : null;
     }
 }
