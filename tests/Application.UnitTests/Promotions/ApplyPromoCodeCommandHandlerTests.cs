@@ -35,6 +35,11 @@ public class ApplyPromoCodeCommandHandlerTests
              .Returns(Task.CompletedTask);
         _repo.Setup(r => r.AddRedemptionAsync(It.IsAny<PromoRedemption>(), It.IsAny<CancellationToken>()))
              .Returns(Task.CompletedTask);
+        // Slice 2B: idempotency probe defaults to "no prior Applied redemption" for every test
+        // that does not opt-in. Individual tests can override this setup to simulate a retry.
+        _repo.Setup(r => r.GetActiveAppliedRedemptionAsync(
+                It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+             .ReturnsAsync((PromoRedemption?)null);
 
         _user = new Mock<IUser>();
         _user.SetupGet(u => u.Id).Returns("user-001");
