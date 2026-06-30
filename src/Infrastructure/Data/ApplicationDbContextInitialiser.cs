@@ -1,9 +1,11 @@
 ﻿using greenfield_checkout.Domain.Constants;
 using greenfield_checkout.Domain.Entities;
+using greenfield_checkout.Domain.Enums;
 using greenfield_checkout.Domain.ValueObjects;
 using greenfield_checkout.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -103,6 +105,28 @@ public class ApplicationDbContextInitialiser
                     new TodoItem { Title = "Reward yourself with a nice, long nap 🏆" },
                 }
             });
+
+            await _context.SaveChangesAsync();
+        }
+
+        // SPEC-2026-0043 slice 2A: seed the promo code catalog used by Gherkin scenarios.
+        if (!await _context.PromoCodes.AnyAsync())
+        {
+            var startOfYear = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+            var endOfYear = new DateTimeOffset(2026, 12, 31, 23, 59, 59, TimeSpan.Zero);
+
+            _context.PromoCodes.AddRange(
+                new PromoCode("VERANO20", PromoCodeType.Percentage, 20m, startOfYear, endOfYear, 10_000),
+                new PromoCode("FIJO50", PromoCodeType.Fixed, 50m, startOfYear, endOfYear, 10_000),
+                new PromoCode("MEGA50", PromoCodeType.Percentage, 50m, startOfYear, endOfYear, 10_000, maxDiscount: 30m),
+                new PromoCode("PRIMAVERA", PromoCodeType.Percentage, 10m,
+                    new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero),
+                    new DateTimeOffset(2026, 5, 31, 23, 59, 59, TimeSpan.Zero),
+                    1_000));
+
+            var agotado = new PromoCode("AGOTADO", PromoCodeType.Percentage, 10m, startOfYear, endOfYear, 1);
+            agotado.Consume();
+            _context.PromoCodes.Add(agotado);
 
             await _context.SaveChangesAsync();
         }
