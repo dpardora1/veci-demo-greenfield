@@ -3,13 +3,20 @@ using greenfield_checkout.Application.Promotions.Common;
 using greenfield_checkout.Application.Promotions.Common.Models;
 using greenfield_checkout.Domain.Entities;
 using greenfield_checkout.Domain.Enums;
+using greenfield_checkout.Domain.Events;
 
 namespace greenfield_checkout.Application.Promotions.Commands.ApplyPromoCode;
 
 /// <summary>
 /// SPEC-2026-0043 — Apply a promotional code to a reservation in pre-reservation state.
 /// Slice 1: validates RN1/RN2/RN5/RN6 and emits a redemption trace (RN10 partial).
-/// Slice 2+ pending: RN3 max_per_user, RN4 destinations, RN7 tips, RN8 stacking, RN9 slot, idempotency.
+/// Slice 2A: persisted via EF Core + PostgreSQL.
+/// Slice 2B: idempotent by (reservationId, code, userId) within the pre-reservation
+/// window (SPEC §7.1 PUT note), and publishes PromoCodeRedeemedEvent on every outcome
+/// (RN10 full: applied and rejected redemptions both notify downstream consumers).
+/// Slice 2C: RN3 max_per_user (PROMO_ALREADY_USED) and §8 brute-force protection
+/// (10 attempts / 5 min per (user, reservation) → PROMO_RATE_LIMITED).
+/// Slice 2+ pending: RN4 destinations, RN7 tips, RN8 stacking, RN9 slot, timeout.
 /// </summary>
 public sealed record ApplyPromoCodeCommand : IRequest<ApplyPromoCodeResult>
 {
@@ -20,6 +27,10 @@ public sealed record ApplyPromoCodeCommand : IRequest<ApplyPromoCodeResult>
 
 public sealed class ApplyPromoCodeCommandHandler : IRequestHandler<ApplyPromoCodeCommand, ApplyPromoCodeResult>
 {
+    // SPEC-2026-0043 §8 — anti-bruteforce: 10 attempts per (user, reservation) per 5 min.
+    public const int RateLimitMaxAttempts = 10;
+    public static readonly TimeSpan RateLimitWindow = TimeSpan.FromMinutes(5);
+
     private readonly IPromoCodeRepository _repository;
     private readonly IUser _currentUser;
     private readonly TimeProvider _timeProvider;
@@ -39,47 +50,91 @@ public sealed class ApplyPromoCodeCommandHandler : IRequestHandler<ApplyPromoCod
         var userId = _currentUser.Id ?? "anonymous";
         var now = _timeProvider.GetUtcNow();
 
+        // Slice 2C — §8 anti-bruteforce. Counted BEFORE idempotency so a flood of retries
+        // on the same (reservation, code) cannot be used to mask abuse on neighbouring codes.
+        var attempts = await _repository.CountAttemptsInWindowAsync(
+            request.ReservationId, userId, now - RateLimitWindow, cancellationToken);
+        if (attempts >= RateLimitMaxAttempts)
+        {
+            await PersistRejectionAsync(
+                request.Code, userId, request.ReservationId, PromoCodeRejectReason.RateLimited, now, cancellationToken);
+            return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.RateLimited));
+        }
+
+        // Slice 2B — idempotency: a retry with the same (reservation, code, user) that
+        // is still Applied returns the prior result without consuming a new slot or
+        // emitting a duplicate trace.
+        var alreadyApplied = await _repository.GetActiveAppliedRedemptionAsync(
+            request.ReservationId, request.Code, userId, cancellationToken);
+        if (alreadyApplied is not null)
+        {
+            return ApplyPromoCodeResult.Applied(request.Subtotal, alreadyApplied.AmountDiscounted ?? 0m);
+        }
+
         var promo = await _repository.GetAsync(request.Code, cancellationToken);
         if (promo is null)
         {
-            await _repository.AddRedemptionAsync(new PromoRedemption
-            {
-                Code = request.Code,
-                UserId = userId,
-                ReservationId = request.ReservationId,
-                Result = RedemptionResult.Rejected,
-                Reason = PromoCodeRejectReason.NotFound
-            }, cancellationToken);
-
+            await PersistRejectionAsync(
+                request.Code, userId, request.ReservationId, PromoCodeRejectReason.NotFound, now, cancellationToken);
             return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.NotFound));
+        }
+
+        // Slice 2C — RN3 max_per_user. Count active applied redemptions for this user/code
+        // (ignoring releases) and reject if the cap is reached.
+        var activeByUser = await _repository.CountActiveAppliedByUserAsync(promo.Code, userId, cancellationToken);
+        if (activeByUser >= promo.MaxPerUser)
+        {
+            await PersistRejectionAsync(
+                promo.Code, userId, request.ReservationId, PromoCodeRejectReason.AlreadyUsed, now, cancellationToken);
+            return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(PromoCodeRejectReason.AlreadyUsed));
         }
 
         var evaluation = promo.Evaluate(request.Subtotal, now);
         if (!evaluation.Success)
         {
-            await _repository.AddRedemptionAsync(new PromoRedemption
-            {
-                Code = promo.Code,
-                UserId = userId,
-                ReservationId = request.ReservationId,
-                Result = RedemptionResult.Rejected,
-                Reason = evaluation.Reason
-            }, cancellationToken);
-
+            await PersistRejectionAsync(
+                promo.Code, userId, request.ReservationId, evaluation.Reason!.Value, now, cancellationToken);
             return ApplyPromoCodeResult.Rejected(request.Subtotal, ApplyPromoCodeResult.ErrorCodeFor(evaluation.Reason!.Value));
         }
 
         promo.Consume();
         await _repository.SaveAsync(promo, cancellationToken);
-        await _repository.AddRedemptionAsync(new PromoRedemption
+
+        var applied = new PromoRedemption
         {
             Code = promo.Code,
             UserId = userId,
             ReservationId = request.ReservationId,
             Result = RedemptionResult.Applied,
             AmountDiscounted = evaluation.Discount
-        }, cancellationToken);
+        };
+        applied.AddDomainEvent(new PromoCodeRedeemedEvent(
+            promo.Code, userId, request.ReservationId,
+            RedemptionResult.Applied, reason: null, amountDiscounted: evaluation.Discount, timestamp: now));
+        await _repository.AddRedemptionAsync(applied, cancellationToken);
 
         return ApplyPromoCodeResult.Applied(request.Subtotal, evaluation.Discount);
+    }
+
+    private async Task PersistRejectionAsync(
+        string code,
+        string userId,
+        string reservationId,
+        PromoCodeRejectReason reason,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var rejected = new PromoRedemption
+        {
+            Code = code,
+            UserId = userId,
+            ReservationId = reservationId,
+            Result = RedemptionResult.Rejected,
+            Reason = reason
+        };
+        rejected.AddDomainEvent(new PromoCodeRedeemedEvent(
+            code, userId, reservationId,
+            RedemptionResult.Rejected, reason, amountDiscounted: null, timestamp: now));
+        await _repository.AddRedemptionAsync(rejected, cancellationToken);
     }
 }

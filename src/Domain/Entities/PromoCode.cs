@@ -17,6 +17,7 @@ public class PromoCode
     public DateTimeOffset ValidTo { get; private set; }
     public int MaxTotalRedemptions { get; private set; }
     public int TotalRedemptions { get; private set; }
+    public int MaxPerUser { get; private set; }
 
     private PromoCode() { }
 
@@ -27,7 +28,8 @@ public class PromoCode
         DateTimeOffset validFrom,
         DateTimeOffset validTo,
         int maxTotalRedemptions,
-        decimal? maxDiscount = null)
+        decimal? maxDiscount = null,
+        int maxPerUser = 1)
     {
         if (string.IsNullOrWhiteSpace(code))
             throw new ArgumentException("Code cannot be empty.", nameof(code));
@@ -42,6 +44,8 @@ public class PromoCode
         // RN5 invariant: type-and-value pair is exclusive by construction (single Type, single Value).
         if (maxDiscount is < 0)
             throw new ArgumentOutOfRangeException(nameof(maxDiscount));
+        if (maxPerUser <= 0)
+            throw new ArgumentOutOfRangeException(nameof(maxPerUser), "MaxPerUser must be positive.");
 
         Code = code;
         Type = type;
@@ -50,6 +54,7 @@ public class PromoCode
         ValidTo = validTo;
         MaxTotalRedemptions = maxTotalRedemptions;
         MaxDiscount = maxDiscount;
+        MaxPerUser = maxPerUser;
         TotalRedemptions = 0;
     }
 
@@ -95,6 +100,18 @@ public class PromoCode
         if (TotalRedemptions >= MaxTotalRedemptions)
             throw new InvalidOperationException($"PromoCode '{Code}' is exhausted.");
         TotalRedemptions++;
+    }
+
+    /// <summary>
+    /// Returns a previously consumed slot to the global pool (SPEC-2026-0043 slice 2B,
+    /// supports the customer-triggered DELETE flow). Idempotent on Code-Reservation pairs:
+    /// the caller is responsible for ensuring there is an Applied redemption to release.
+    /// </summary>
+    public void Release()
+    {
+        if (TotalRedemptions <= 0)
+            throw new InvalidOperationException($"PromoCode '{Code}' has no redemptions to release.");
+        TotalRedemptions--;
     }
 }
 

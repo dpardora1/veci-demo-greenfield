@@ -23,6 +23,7 @@ public static class Services
     /// <summary>
     /// The name of the Database.
     /// This is the name of the database that will be created and used by the application.
+    /// Must match Aspire resource naming rules: ASCII letters, digits, and hyphens only.
     /// </summary>
-    public const string Database = "greenfield_checkoutDb";
+    public const string Database = "greenfield-checkout-db";
 }
