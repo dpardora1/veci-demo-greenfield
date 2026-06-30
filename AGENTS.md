@@ -1,7 +1,8 @@
 # AGENTS.md — greenfield-checkout
 
 > Instrucciones para agentes IA (Copilot, Foundry Agents, background agents) que trabajen en este repo.
-> Última revisión: 2026-06-29. Owner: pendiente de asignar en el demo.
+> Última revisión: 2026-06-30. Owner: pendiente de asignar en el demo.
+> Consume catálogo común: [`cliente-ia-platform@v2026.06`](https://github.com/dpardora1/cliente-ia-platform/tree/v2026.06) — ver §6.bis.
 
 ## 1. Propósito del repo
 
@@ -79,9 +80,24 @@ API + SPA para el flujo de **checkout de excursiones opcionales** en touroperaci
 
 > Cualquier MCP no listado: prohibido sin ADR.
 
+## 6.bis Skills compartidas (catálogo externo)
+
+Este repo **consume** skills del catálogo común publicado en [`dpardora1/cliente-ia-platform`](https://github.com/dpardora1/cliente-ia-platform/tree/v2026.06), versionado con el tag `v2026.06`.
+
+- **Política** (ver [ADR-002 del catálogo](https://github.com/dpardora1/cliente-ia-platform/blob/v2026.06/adr/ADR-002-referencia-desde-demo.md)): consumir siempre por **URL absoluta + tag inmutable**, nunca por `main`. Promoción a una versión nueva del catálogo requiere PR en este repo que cambie el tag aquí declarado.
+- **Skills disponibles en `v2026.06`** (resumen — la fuente de verdad está en el catálogo):
+
+| Skill | Cuándo usarla | Frontmatter |
+|---|---|---|
+| [`slicing-assist`](https://github.com/dpardora1/cliente-ia-platform/blob/v2026.06/skills/slicing-assist.prompt.md) | Spec aprobada → plan de slices verticales | `SKILL-2026-0001`, `bootstrap: true` |
+| [`revisar-pr-aware`](https://github.com/dpardora1/cliente-ia-platform/blob/v2026.06/skills/revisar-pr-aware.prompt.md) | Revisar PR con conciencia de spec + issue | `SKILL-2026-0002`, `bootstrap: true` |
+
+- **Cómo invocar una skill**: el agente lee el `.prompt.md` referenciado por URL fija (tag pinneado). No copiar el contenido a este repo — eso fragmentaría el catálogo.
+- **Skills marcadas `bootstrap: true`**: están en periodo de validación y pueden cambiar o desaparecer. No depender de ellas para flujos críticos hasta que pasen a `bootstrap: false`.
+
 ## 7. Glosario de dominio
 
-Ver [`../cliente-ia-platform/glosario.md`](../cliente-ia-platform/glosario.md).
+Pendiente — el glosario aún no existe en el catálogo (deuda registrada para slice 3D / spec futura). Hasta entonces, los términos de dominio se definen inline en cada SPEC.
 
 ## 8. Patrones a seguir y a evitar
 
@@ -124,5 +140,5 @@ Ver [`../cliente-ia-platform/glosario.md`](../cliente-ia-platform/glosario.md).
 
 - [Playbook](../../VECI_Methodology/playbook/README.md)
 - [Cap. 08 — Validación en demo](../../VECI_Methodology/playbook/08-validacion-en-demo.md)
-- [Catálogo común del demo](../cliente-ia-platform/README.md)
+- [Catálogo de skills `cliente-ia-platform@v2026.06`](https://github.com/dpardora1/cliente-ia-platform/tree/v2026.06) — ver §6.bis
 - [Plantilla Clean Architecture](https://github.com/jasontaylordev/CleanArchitecture)
