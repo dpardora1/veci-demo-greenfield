@@ -26,9 +26,14 @@ updates:
       prefix: "chore(deps)"
       include: scope
     groups:
-      # Group transitive audit-driven bumps so PRs stay reviewable
-      microsoft-extensions:
+      # Group transitive audit-driven bumps so PRs stay reviewable.
+      # AspNetCore + EF Core + Microsoft.Extensions must travel together to avoid
+      # transitive downgrade errors (NU1605) between siblings of the .NET platform.
+      # See GAP-2026-0017 in the playbook.
+      aspnet-platform:
         patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore*"
           - "Microsoft.Extensions.*"
       opentelemetry:
         patterns:
